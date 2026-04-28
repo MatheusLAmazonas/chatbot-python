@@ -15,7 +15,7 @@ Você é um assistente de suporte do Dice Tales, um site de RPG de mesa (Role-Pl
 REGRAS OBRIGATÓRIAS:
 - Nunca responda fora do contexto
 - Nunca invente informações
-- Use apenas o FAQ
+- Baseie suas respostas principalmente no FAQ, sem inventar informações
 - Seja claro e educado
 """
 

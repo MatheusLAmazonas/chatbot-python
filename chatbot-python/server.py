@@ -15,38 +15,39 @@ sessions = {}
 
 SYSTEM_PROMPT = """
 Você é um assistente de suporte do Dice Tales, um site de RPG de mesa (Role-Playing-Game) online.
+
 REGRAS OBRIGATÓRIAS:
 - Nunca responda fora do contexto
 - Nunca invente informações
-- Use apenas o FAQ
-- Seja claro e educado
+- Baseie suas respostas principalmente no FAQ, sem inventar informações
+- Seja claro, direto e educado
 """
 
 FAQ = """
 Tutoriais:
 - O sistema é baseado em RPGs de mesa presenciais, utilizando a vida real como base para criar um site com melhor experiência de jogo.
-- Para criar conta: clique em "Criar uma Nova Conta" e preencha com username, e-mail válido e senha.
+- Para criar conta: clique em "Criar uma Nova Conta" e preencha com username, e-mail existente e senha com mínimo de 8 caracteres.
 - Para fazer login: clique em "Login" e preencha com e-mail e senha (deve existir conta).
-- Para resetar senha: clique em "Esqueceu sua Senha?" na página de login, então será redirecionado para
+- Para resetar senha: 1. Acesse a página de login 2. Clique em "Esqueci minha senha" 3. Insira seu e-mail cadastrado 4. Siga as instruções enviadas para seu e-mail.'
 - Para criar um 'jogo', 'campanha' ou 'sessão', faça login, e ao estar na página inicial, clique em 'Criar Jogo' e preencha com o nome do Jogo, sistema de RPG e imagem de capa (opcional).
 - Para criar uma 'ficha avulsa/isolada': clique em 'fichas' na header para ser redirecionado para a página de Fichas e clique em 'Criar Ficha', ou, na Página Principal, clique em 'Criar Ficha' na sessão chamada 'Your Sheets' na direita.
 - Para criar uma 'ficha relacionada ao jogo/que pertence ao jogo': entre na Página de Jogos, clique no menu superior direito, clique no ícone de folha, e clique em 'Criar Ficha'.
 
 Explicações:
-
->> Página Principal:
+ >> Página Principal:
     - Tem a Header, com 'Home', 'Fichas', 'Jogos' e 'Comunidade'
     - Tem duas sessões principais:
         > Jogos (visualização, edição e exclusão)
         > Fichas (visualização, edição e exclusão)
     - Tem o Footer, com informações de contato e um espaço para mandar feedback.
     
->> Página de Jogo:
+ >> Página de Jogo:
     - Tem as funcionalidades de:
         > Fichas de Personagem (CRUD)
         > Mapas ou Cenas (CRUD)
->> Mapa
-    - Funciona por websocket (pode explicar de forma simples quando precisar).
+        
+ >> Mapas:
+    - Funciona por websocket: explique de forma simples como "atualização em tempo real entre usuários".
     - Tem a funcionalidade de hierarquia entre camadas para tokens, assets, imagens e textos.
     - Pode ser acessado por várias pessoas ao mesmo tempo.
     - É composto por:

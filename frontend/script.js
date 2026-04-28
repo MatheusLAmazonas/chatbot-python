@@ -9,19 +9,70 @@ const menuText = `Bem-vindo ao Chat de Suporte!
 
 Por favor, escolha uma das opções abaixo digitando o número correspondente:
 
-1. Horário de funcionamento
-2. Como resetar a senha
-3. Chat livre com IA (Gemini)
-4. Sair`;
+1. Chat livre com IA (Gemini)
+2. Problemas com o Login
+3. Problemas com o Cadastro
+4. Redefinir minha Senha 
+5. Sair`;
 
 function generateSessionId() {
     return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
+function enviarParaIA(pergunta, mostrarMenu = false) {
+  const responseBot = addBotMessage('Digitando...');
+
+  fetch('http://localhost:5000/chat', {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+          message: pergunta,
+          session_id: sessionId
+      })
+  })
+  .then(response => response.json())
+  .then(data => {
+      responseBot.textContent = data.response || data.message || 'Não houve resposta.';
+      responseBot.scrollIntoView({
+          behavior: 'smooth',
+          block: "start"
+      })
+
+      if (mostrarMenu) {
+        setTimeout(() => {
+            addBotMessage(menuText)
+        }, 600);
+      }
+
+      input.disabled = false;
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Enviar';
+      input.focus();
+  })
+  .catch(error => {
+      responseBot.textContent = '❌ Desculpe, ocorreu um erro ao conectar com a IA. Verifique sua conexão e tente novamente.';
+      responseBot.scrollIntoView({
+          behavior: 'smooth',
+          block: "start"
+      })
+
+      if (mostrarMenu) {
+        addBotMessage(menuText)
+      }
+      
+      input.disabled = false;
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Enviar';
+      input.focus();
+  })
+}
+
+
 function addMessage(text, isUser = false) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
-    msgDiv.text = 'Digitando...'
 
     const bubble = document.createElement('div');
     bubble.className = isUser
@@ -53,18 +104,24 @@ function handleSend(msg) {
     if (mode === 'menu') {
         const num = parseInt(msg);
         if (num === 1) {
-            addBotMessage('📅 **Horário de funcionamento:**\nSegunda a sexta-feira, das 9h às 18h.\nSábados, das 9h às 13h.');
-            addBotMessage(menuText);
-        } else if (num === 2) {
-            addBotMessage('🔑 **Como resetar a senha:**\n1. Acesse a página de login.\n2. Clique em \"Esqueci minha senha\".\n3. Insira seu e-mail cadastrado.\n4. Siga as instruções enviadas para seu e-mail.');
-            addBotMessage(menuText);
-        } else if (num === 3) {
+            addUserMessage("Quero tirar dúvidas com a IA!")
             addBotMessage('🚀 Perfeito! Iniciando o chat livre com nossa IA Gemini. Pode fazer qualquer pergunta agora!');
             sessionId = generateSessionId();
             mode = 'chat';
             input.placeholder = 'Digite sua mensagem... (Enter para enviar)';
+        } else if (num === 2) {
+            addUserMessage("Estou tendo problemas com o Login...")
+            enviarParaIA("Estou tendo problemas com o Login no Dice Tales (faça o tutorial para o login, e fale de forma sucinta o que pode estar causando o problema.)", true)
+        } else if (num === 3) {
+            addUserMessage("Estou tendo problemas com o Cadastro...")
+            enviarParaIA("Estou tendo problemas com o Cadastro no Dice Tales (faça o tutorial sobre o cadastro, e fale de forma sucinta o que pode estar causando o problema.)", true)
         } else if (num === 4) {
+            addUserMessage("Como posso resetar minha senha?")
+            enviarParaIA("Como posso resetar minha senha no Dice Tales? (faça o tutorial de redefinir senha e fale sucintamente o que o usuário precisa saber.)", true)
+        }else if (num === 5) {
+            addUserMessage("Sair!")
             addBotMessage('👋 Obrigado por usar nosso chat de suporte! Tenha um ótimo dia!');
+
             input.disabled = true;
             sendBtn.disabled = true;
             sendBtn.textContent = 'Chat Encerrado';
@@ -72,52 +129,17 @@ function handleSend(msg) {
             sendBtn.classList.add('bg-gray-400');
             mode = 'ended';
         } else {
-            addBotMessage('❌ Opção inválida. Por favor, digite 1, 2, 3 ou 4.');
+            addBotMessage('❌ Opção inválida. Por favor, digite 1, 2, 3, 4 ou 5.');
             addBotMessage(menuText);
         }
     } else if (mode === 'chat') {
         addUserMessage(msg);
-        const responseBot = addBotMessage('Digitando...')
 
         input.disabled = true;
         sendBtn.disabled = true;
         sendBtn.textContent = 'Enviando...';
 
-        fetch('http://localhost:5000/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                message: msg,
-                session_id: sessionId
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            responseBot.textContent = data.response || data.message || 'Não houve resposta.';
-            responseBot.scrollIntoView({
-                behavior: 'smooth',
-                block: "start"
-            });
-
-            input.disabled = false;
-            sendBtn.disabled = false;
-            sendBtn.textContent = 'Enviar';
-            input.focus();
-        })
-        .catch(error => {
-            responseBot.textContent = '❌ Desculpe, ocorreu um erro ao conectar com a IA. Verifique sua conexão e tente novamente.';
-            responseBot.scrollIntoView({
-                behavior: 'smooth',
-                block: "start"
-            });
-            
-            input.disabled = false;
-            sendBtn.disabled = false;
-            sendBtn.textContent = 'Enviar';
-            input.focus();
-        });
+        enviarParaIA(msg)
     }
 }
 
