@@ -1,20 +1,34 @@
-from database import criar_tabelas, get_db
+from database import get_db, criar_tabelas
 import user_crud as repo
 
-# Cria as tabelas automaticamente
+# Garante que a tabela existe
 criar_tabelas()
 
-# Teste conexão com backend
 with get_db() as db:
-    print("Criando usuário...")
-    repo.criar_usuario(db, "ale", "123456")
 
-    print("Buscando usuário...")
-    usuario = repo.buscar_usuario_por_username(db, "ale")
-    print(usuario.username)
+    # ALTERAR SENHA
+    print("Alterando senha do usuário 'ale'...")
+    usuario_atualizado = repo.atualizar_senha(db, "ale", "nova123")
 
-    print("Validando senha...")
-    print(repo.verificar_senha(usuario, "123456"))
+    if usuario_atualizado:
+        print(f"Senha atualizada para: {usuario_atualizado.username}")
+    else:
+        print("Usuário não encontrado para atualização.")
 
-    print("Listando usuários...")
-    print(repo.listar_usuarios(db))
+
+    # EXCLUIR USUÁRIO
+    print("\nExcluindo usuário 'teste'...")
+    sucesso = repo.deletar_usuario(db, "teste")
+
+    if sucesso:
+        print("Usuário deletado com sucesso.")
+    else:
+        print("Usuário não encontrado para exclusão.")
+
+
+    # LISTAR USUÁRIOS ATUAIS
+    print("\nUsuários restantes:")
+    usuarios = repo.listar_usuarios(db)
+    
+    for u in usuarios:
+        print(f"- {u['username']}")

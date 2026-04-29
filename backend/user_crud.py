@@ -28,8 +28,8 @@ def buscar_usuario_por_username(db: Session, username: str):
 
 
 def listar_usuarios(db: Session):
-    return db.query(UsuarioChatbot).all()
-
+    usuarios = db.query(UsuarioChatbot).all()
+    return [{"id": u.id, "username": u.username} for u in usuarios]
 
 def atualizar_senha(db: Session, username: str, nova_senha: str):
     usuario = buscar_usuario_por_username(db, username)
