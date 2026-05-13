@@ -1,14 +1,11 @@
-from google import genai
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-
-MODEL_ID = "gemini-2.5-flash" 
-
-chat = client.chats.create(model=MODEL_ID)
+MODEL_ID = "gemini-2.5-flash"
 
 SYSTEM_PROMPT = """
 Você é um assistente de suporte do Dice Tales, um site de RPG de mesa (Role-Playing-Game) online.
@@ -63,31 +60,24 @@ responda que a funcionalidade ainda não foi implementada pois o sistema ainda e
 - Se a pergunta for sobre algo que não têm resposta no FAQ, diga "Desculpe, não tenho a resposta para essa pergunta."
 """
 
-print(f"--- Chatbot Gemini Ativo ({MODEL_ID}) ---")
+llm = ChatGoogleGenerativeAI(model=MODEL_ID)
+prompt_template = ChatPromptTemplate.from_messages([
+    ("system", f"{SYSTEM_PROMPT}\n\nBase de conhecimento:\n{FAQ}"),
+    ("human", "{input}"),
+])
+
+chain = prompt_template | llm
+
+print(f"--- Chatbot Gemini com LangChain Ativo ({MODEL_ID}) ---")
 
 while True:
     texto = input("\nVocê: ")
-    
     if texto.lower() == "sair":
         break
     
     try:
-        prompt = f"""
-{SYSTEM_PROMPT}
-
-Base de conhecimento:
-{FAQ}
-
-Pergunta do usuário:
-{texto}
-"""
-
-        resposta = client.models.generate_content(
-            model=MODEL_ID,
-            contents=prompt
-        )
-        print(f"Chatbot: {resposta.text}")
-        
+        resposta = chain.invoke({"input": texto})
+        print(f"Chatbot: {resposta.content}")
     except Exception as e:
         if "429" in str(e):
             print("\n[ERRO] Cota excedida. Aguarde alguns segundos...")

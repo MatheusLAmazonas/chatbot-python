@@ -2,15 +2,16 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from google import genai
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_community.chat_message_histories import ChatMessageHistory
 import uuid
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app, origins="http://localhost:8000")
-
-client = None
 sessions = {}
 
 SYSTEM_PROMPT = """
@@ -67,64 +68,60 @@ responda que a funcionalidade ainda não foi implementada pois o sistema ainda e
 - Se a pergunta for sobre algo que não têm resposta no FAQ, diga "Desculpe, não tenho a resposta para essa pergunta."
 """
 
+# Configuração do Modelo e Prompt LangChain
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
 
-def get_client():
-    global client
-    if client is None:
-        api_key = os.getenv('GOOGLE_API_KEY')
-        if not api_key:
-            raise ValueError("GOOGLE_API_KEY não encontrada no arquivo .env")
-        client = genai.Client(api_key=api_key)
-    return client
+prompt = ChatPromptTemplate.from_messages([
+    ("system", f"{SYSTEM_PROMPT}\n\nBase de conhecimento:\n{FAQ}"),
+    MessagesPlaceholder(variable_name="history"),
+    ("human", "{input}"),
+])
+
+chain = prompt | llm
+
+def get_session_history(session_id: str):
+    if session_id not in sessions:
+        sessions[session_id] = ChatMessageHistory()
+    return sessions[session_id]
+
+chain_with_history = RunnableWithMessageHistory(
+    chain,
+    get_session_history,
+    input_messages_key="input",
+    history_messages_key="history",
+)
 
 @app.route('/chat', methods=['POST'])
 def chat_endpoint():
     data = request.get_json()
     if not data:
         return jsonify({"error": "Nenhum dado JSON fornecido"}), 400
-
+    
     message = data.get('message')
+    session_id = data.get('session_id') or str(uuid.uuid4())
+    
     if not message:
         return jsonify({"error": "Campo 'message' obrigatório"}), 400
 
-    session_id = data.get('session_id')
-    print(f"[DEBUG] Mensagem recebida: {message[:50]}...")
-    print(f"[DEBUG] Session ID: {session_id}")
-
-    if session_id is None:
-        session_id = str(uuid.uuid4())
-        print(f"[DEBUG] Nova sessão criada: {session_id}")
+    print(f"\n[DEBUG] Sessão: {session_id}")
+    print(f"[DEBUG] Pergunta do usuário: {message}")
 
     try:
-        cl = get_client()
-
-        prompt = f"""
-{SYSTEM_PROMPT}
-
-Base de conhecimento:
-{FAQ}
-
-Pergunta do usuário:
-{message}
-"""
-
-        response = cl.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
+        # Invocação usando LangChain com histórico automático
+        response = chain_with_history.invoke(
+            {"input": message},
+            config={"configurable": {"session_id": session_id}}
         )
-        print(f"[DEBUG] Enviando mensagem para Gemini...")
-
-        response_text = response.text
-        print(f"[DEBUG] Resposta recebida: {response_text[:50]}...")
+        
+        print(f"[DEBUG] Resposta da IA: {response.content[:50]}...")
 
         return jsonify({
-            "response": response_text,
+            "response": response.content,
             "session_id": session_id
         })
 
     except Exception as e:
         error_msg = str(e)
-        print(f"[DEBUG] Erro ocorrido: {error_msg}")
         if '429' in error_msg or 'quota' in error_msg.lower() or 'too many requests' in error_msg.lower():
             return jsonify({"error": "Cota excedida (429). Aguarde alguns minutos e tente novamente."}), 429
         else:
