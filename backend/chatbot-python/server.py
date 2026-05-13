@@ -69,22 +69,27 @@ responda que a funcionalidade ainda não foi implementada pois o sistema ainda e
 """
 
 # Configuração do Modelo e Prompt LangChain
+# Aqui definimos o 'cérebro' (LLM) com temperatura 0 para respostas mais precisas (menos criativas)
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
 
+# O ChatPromptTemplate organiza a estrutura da conversa para o modelo
 prompt = ChatPromptTemplate.from_messages([
     ("system", f"{SYSTEM_PROMPT}\n\nBase de conhecimento:\n{FAQ}"),
-    MessagesPlaceholder(variable_name="history"),
+    MessagesPlaceholder(variable_name="history"), # Espaço reservado para as mensagens anteriores
     ("human", "{input}"),
 ])
 
-chain = prompt | llm
+# Criamos a 'corrente' (chain): o prompt alimenta o modelo
+chain = prompt | llm 
 
+# Função que o LangChain usa para buscar o histórico de uma sessão específica
 def get_session_history(session_id: str):
     if session_id not in sessions:
         sessions[session_id] = ChatMessageHistory()
     return sessions[session_id]
 
-chain_with_history = RunnableWithMessageHistory(
+# Envolvemos a nossa chain com um gerenciador de histórico automático
+chain_with_history = RunnableWithMessageHistory( 
     chain,
     get_session_history,
     input_messages_key="input",
@@ -103,13 +108,14 @@ def chat_endpoint():
     if not message:
         return jsonify({"error": "Campo 'message' obrigatório"}), 400
 
+    # O session_id agora é a chave para manter o contexto da conversa
     print(f"\n[DEBUG] Sessão: {session_id}")
     print(f"[DEBUG] Pergunta do usuário: {message}")
 
     try:
-        # Invocação usando LangChain com histórico automático
+        # O .invoke substitui o antigo generate_content()
         response = chain_with_history.invoke(
-            {"input": message},
+            {"input": message}, # LangChain injeta o histórico aqui automaticamente
             config={"configurable": {"session_id": session_id}}
         )
         

@@ -61,11 +61,13 @@ responda que a funcionalidade ainda não foi implementada pois o sistema ainda e
 """
 
 llm = ChatGoogleGenerativeAI(model=MODEL_ID)
+
+# Template que separa a Base de Conhecimento da entrada do usuário
 prompt_template = ChatPromptTemplate.from_messages([
     ("system", f"{SYSTEM_PROMPT}\n\nBase de conhecimento:\n{FAQ}"),
     ("human", "{input}"),
 ])
-
+# LCEL: Encadeamento do prompt com o modelo
 chain = prompt_template | llm
 
 print(f"--- Chatbot Gemini com LangChain Ativo ({MODEL_ID}) ---")
@@ -76,6 +78,7 @@ while True:
         break
     
     try:
+        # O invoke passa o dicionário para preencher as lacunas do prompt_template
         resposta = chain.invoke({"input": texto})
         print(f"Chatbot: {resposta.content}")
     except Exception as e:
