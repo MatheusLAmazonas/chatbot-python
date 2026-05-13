@@ -5,6 +5,7 @@ import server
 import dndhelper
 import os
 
+# Carrega variáveis do .env
 load_dotenv()
 
 # Configura o modelo
@@ -17,6 +18,7 @@ llm = ChatGoogleGenerativeAI(
 print(f"--- Chatbot Gemini Ativo (LangChain) ---")
 print("Pergunte sobre: Dice Tales ou D&D")
 
+# Alterado o prompt da ia para apresentar os dados de forma mais direta
 def criar_prompt_dnd(dados, pergunta):
     """Cria prompt para perguntas de D&D"""
     return ChatPromptTemplate.from_messages([
@@ -25,7 +27,7 @@ def criar_prompt_dnd(dados, pergunta):
 Dados da classe {dados.get('name')}:
 - Dado de Vida: d{dados.get('hit_die')}
 - Proficiências: {[p.get('name') for p in dados.get('proficiencies', [])]}
-
+ 
 Responda de forma SIMPLES e DIRETA sobre esta classe do D&D."""),
         ("human", pergunta)
     ])
@@ -48,6 +50,7 @@ while True:
     if texto.lower() == "sair":
         break
     
+    # Busca dados do D&D
     dados_dnd = dndhelper.buscar_dnd(texto)
     
     try:
