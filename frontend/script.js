@@ -52,6 +52,7 @@ function enviarParaIA(pergunta, mostrarMenu = false) {
       input.focus();
   })
   .catch(error => {
+    console.log(error)
       responseBot.textContent = '❌ Desculpe, ocorreu um erro ao conectar com a IA. Verifique sua conexão e tente novamente.';
       responseBot.scrollIntoView({
           behavior: 'smooth',

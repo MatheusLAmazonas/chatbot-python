@@ -1,4 +1,5 @@
 import os
+import traceback
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -10,8 +11,12 @@ import uuid
 
 load_dotenv()
 
+# Verificação rápida da API Key para evitar erros silenciosos
+if not os.getenv("GOOGLE_API_KEY"):
+    print("\n[AVISO] Variável GOOGLE_API_KEY não encontrada! Verifique seu arquivo .env")
+
 app = Flask(__name__)
-CORS(app, origins="http://localhost:8000")
+CORS(app, origins="http://localhost:8080")
 sessions = {}
 
 SIMPLE_PROMPT = """
@@ -159,7 +164,8 @@ def is_malicious(message):
 
 # Configuração do Modelo e Prompt LangChain
 # Aqui definimos o 'cérebro' (LLM) com temperatura 0 para respostas mais precisas (menos criativas)
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+llm_flash = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+llm_pro = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.1)
 
 # O ChatPromptTemplate organiza a estrutura da conversa para o modelo
 prompt = ChatPromptTemplate.from_messages([
@@ -184,7 +190,8 @@ FAQ:
 ])
 
 # Criamos a 'corrente' (chain): o prompt alimenta o modelo
-chain = prompt | llm 
+chain_basic = prompt | llm_flash
+chain_advanced = prompt | llm_pro
 
 # Função que o LangChain usa para buscar o histórico de uma sessão específica
 def get_session_history(session_id: str):
@@ -193,8 +200,15 @@ def get_session_history(session_id: str):
     return sessions[session_id]
 
 # Envolvemos a nossa chain com um gerenciador de histórico automático
-chain_with_history = RunnableWithMessageHistory( 
-    chain,
+chain_basic_history = RunnableWithMessageHistory( 
+    chain_basic,
+    get_session_history,
+    input_messages_key="input",
+    history_messages_key="history",
+)
+
+chain_advanced_history = RunnableWithMessageHistory( 
+    chain_advanced,
     get_session_history,
     input_messages_key="input",
     history_messages_key="history",
@@ -235,17 +249,36 @@ def chat_endpoint():
     print(f"[DEBUG] Tipo do Prompt: {prompt_type}")
     print(f"[DEBUG] Pergunta do usuário: {message}")
 
+    # Lógica de Roteamento: Define qual IA responderá baseada no assunto
+    # Você pode expandir isso usando um classificador de intenções mais complexo se desejar
+    assuntos_complexos = ["mapa", "websocket", "hierarquia", "camada", "token", "asset", "erro", "bug"]
+    is_complex = any(word in message.lower() for word in assuntos_complexos)
+    
     try:
         # O .invoke substitui o antigo generate_content()
-        response = chain_with_history.invoke(
-            {
-                "input": message, # LangChain injeta o histórico aqui automaticamente
-                "base_prompt": base_prompt, 
-                "mode_prompt": modo_selecionado,
-                "FAQ": FAQ
-            },
-            config={"configurable": {"session_id": session_id}}
-        )
+        if is_complex:
+            print("[DEBUG] Usando IA Avançada (Gemini Pro) para assunto complexo.")
+
+            response = chain_advanced_history.invoke(
+                {
+                    "input": message,
+                    "base_prompt": base_prompt,
+                    "mode_prompt": modo_selecionado,
+                    "FAQ": FAQ
+                },
+                config={"configurable": {"session_id": session_id}}
+            )
+        else:
+            print("[DEBUG] Usando IA Básica (Gemini Flash) para suporte geral.")
+            response = chain_basic_history.invoke(
+                {
+                    "input": message,
+                    "base_prompt": base_prompt,
+                    "mode_prompt": modo_selecionado,
+                    "FAQ": FAQ
+                },
+                config={"configurable": {"session_id": session_id}}
+            )
         
         print(f"[DEBUG] Resposta da IA: {response.content[:50]}...")
 
@@ -255,11 +288,13 @@ def chat_endpoint():
         })
 
     except Exception as e:
+        print("\n[ERRO CRÍTICO NO BACKEND]")
+        traceback.print_exc()
+        
         error_msg = str(e)
         if '429' in error_msg or 'quota' in error_msg.lower() or 'too many requests' in error_msg.lower():
             return jsonify({"error": "Cota excedida (429). Aguarde alguns minutos e tente novamente."}), 429
-        else:
-            return jsonify({"error": f"Erro interno do servidor: {error_msg}"}), 500
+        return jsonify({"error": f"Erro interno: {error_msg}"}), 500
 
 if __name__ == "__main__":
     print("[DEBUG] Servidor Flask iniciando em http://0.0.0.0:5000")
