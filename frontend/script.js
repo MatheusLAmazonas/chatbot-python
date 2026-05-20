@@ -9,7 +9,7 @@ const menuText = `Bem-vindo ao Chat de Suporte!
 
 Por favor, escolha uma das opções abaixo digitando o número correspondente:
 
-1. Chat livre com IA (Gemini)
+1. Chat livre com IA
 2. Problemas com o Login
 3. Problemas com o Cadastro
 4. Redefinir minha Senha 
@@ -105,7 +105,7 @@ function handleSend(msg) {
         const num = parseInt(msg);
         if (num === 1) {
             addUserMessage("Quero tirar dúvidas com a IA!")
-            addBotMessage('🚀 Perfeito! Iniciando o chat livre com nossa IA Gemini. Pode fazer qualquer pergunta agora!');
+            addBotMessage('🚀 Perfeito! Iniciando o chat livre com nossa IA. Pode fazer qualquer pergunta agora!');
             sessionId = generateSessionId();
             mode = 'chat';
             input.placeholder = 'Digite sua mensagem... (Enter para enviar)';
