@@ -13,3 +13,5 @@ O Projeto em questão baseia-se na integração do gemini juntamente a um chatbo
 Clone esse repositório<br>
 git clone https://github.com/MatheusLAmazonas/chatbot-python<br>
 cd chatbot-python<br>
+
+
